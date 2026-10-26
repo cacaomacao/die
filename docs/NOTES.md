@@ -1,0 +1,429 @@
+# DIE — Research Notes
+
+Extracted from the original `core/__init__.py` module docstring (the project design notebook).
+
+
+**Research Aims**
+- Let agents learn effective Operator dynamics of medium for prediction and their life
+- Find how agents establish communication
+
+**Research targets for success**
+- Beat some SoA model
+- Solve new task, inaccessible for previous models
+  Unsupervised image processing?
+  Object follower kernels?
+  Dynamics predictor?
+- Make just fucking cool thing, mind-blowing
+  (example is Xenobots evo algo)
+  Like learn DSP programs from convolutions (approximate FFT)
+  Kernels for distributed object detection? (e.g. find faces, find eyes)
+  Learn distributed robust programs (sorting/cleaning)
+
+**Possible Research Vectors**
+- It can be research about Artificial Life:
+  how energetic (life/death) pressures influence patterns?
+- **Learnable Robust Distributed Computing in the form of Signal processing**
+  FPGA + DSP in Edge AI for custom image processing tasks.
+  - Research SoA: how difficult inference is?
+
+- Can I see agents+kernel as image attention?
+  So then I can try making agents position
+  a separate output of the model run on top of kernel-processed image,
+  fed-back into...
+  What an experiment for checking this?
+  How and where can this help? Dynamic, smooth and 'precious' image attention?
+- Can prediction be temporally deep? (like learning temporal models of env)
+- Learning to Communicate:
+    - Finding correlation between medium capacity for message passing and system complexity
+    - Provisioning some potential to establish better comm channels -- like a winning strategy.
+- Learning *dynamic* model of environment in Cellular Automata
+  Pushing agent to implicitly model/predict dynamics of the medium
+  Modeling operators ('change') instead of patterns ('things') in the world.
+  How to compare it with NNs?
+  Maybe with dynamic medium operators (diffusion/decay) that could work.
+  Agents will learn the model, while NNs will not.
+
+**Proof-of-concepts**
+- Function approx: reproduce Sobel kernel given contour images
+
+Plan
+- [x] Stage 0.1: const moving
+- [x] Stage 0.2: classic physarum? without feeding/dying; just moving
+- [x] Stage 0.3: basic intelligence: some obviously working learning agent (e.g. evolutionary)
+-- can write an article here; publish as a new Env for ALife research
+- [ ] Stage 0.4: RL
+- [ ] Stage 0.5: FEP
+
+Publish
+- [x] Readme ;; add research aims?
+- [x] make minimal example
+- [x] GIF demo with Starting code for gifs
+- [x] compress gifs
+- [ ] make Env the gym.Env
+- [ ] few tests & CI
+- [ ] upd readme & gifs with Neural CA
+- [ ] **Resolve question with multi-agent interface??**
+fixes for usability
+- [x] color plotting
+- [ ] max_agents in agents must be broadcastable with env medium (cut size)
+- [x] return stats properly in a final dict; not in logging (tqdm err-s)
+Concept:
+- [ ] Resolve & put to README: is it single-agent env? is it multi-agent? single-agent distributed? can I have multi-agent env here?
+    - see: https://pettingzoo.farama.org/api/parallel/
+    - also: https://docs.ray.io/en/latest/rllib/rllib-env.html#multi-agent-and-hierarchical --- this API seems appropriate.
+      It's like we have {agent_id -> policy} mappings,
+      in default case I have trivial mapping with only one policy,
+      in multi-agent setting I can have different agents with their own policies.
+    - Well, I have continuous, homogeneous & cooperative (shared-policy), vectorized agents and environment.
+- [ ] Renderer refactoring
+    - [x] separation of responsibility
+    - [x] usages of InteractivePlotter
+    - [x] rename InteractivePlotter to InteractivePlotter; movements for clear imports
+    - [x] static InteractivePlotter(Env, Agent)
+    - [x] usages and usability of Env.render
+    - [x] AgentDrawer for Convolution agent
+        here I have the problem that initial tensor is zero!
+    - [ ] animation drawing
+
+Necessary core
+- [x] some basic data init ENVs per channels for tests YET minimal
+- [x] test data init: plot channels
+
+- [x] agent move async
+- [x] fix MockConstAgent
+- [x] test agent moving
+- [x] make buffered update more efficient
+- [x] 0.1: agent moving separate coords separately!
+    - [x] add agent info array with purely informational unordered unindexed array
+    - [x] make & test DataInitializer for new agents, subst usages of its methods
+        - [x] agents from medium MAPPING
+        - [x] get_current_obs
+        - [x] modify simple agents
+        - [x] check postprocess action in Agent
+        - [x] test mapping & DataInit
+    - [x] return agents map to field? make a separate method for mapping them
+        - [x] consider alive agents only
+        - [x] --think if needed doing this in-the-loop ?
+        - [x] rewrite other methods:
+        - [x] agents lifecycle & deposit
+        - [x] agents feed & consume
+    Bugs
+    - [x] sort out why agents are ...lost?...
+    - [x] only alive selection -- is it working?
+    - [x] BUG with agents feeding somehow unconstrained growth from where? from collisions?
+          what can it be? possibly it's data collisions in 'feeding' step.
+          try rewriting it step-by-step
+
+- [x] plotting agents array with food etc.
+- [x] plotting LIVE
+
+- [x] agent action cost -- not obvious & important
+- [x] some boundary conditions
+- [x] medium diffusion & decay
+- [x] rewrite Agents to work on 'agents' array with FieldMapping
+        because now i can't store direction of agents fixed by agent id
+        --> seems like it's simpler to just select gradient field and act on agents array.
+        that is: change Action format from Field to Agent -> it's far more logical
+        possibly this will simplify Env logic
+        - [x] agent_move
+        seems like will need single mapping from Action array to Medium by Agent coords
+        - [x] agent_act_on_medium will be like agents_to_medium
+    - [x] add medium RANDOMIZATION of agents <-- will be resolved by previous point
+          because randomization in agents is still liable to *aliasing*
+- [x] 0.2: come up with Physarum kernel
+      some summing-up kernel that determines direction?
+      like *chemical-weighted sum of coordinates*? then we get direction vector.
+      ah, I see! that's like *a specific case of general convolving agent* with const-linear weigth mask!
+      - [x] understand why gradient agent doesn't return the characteristic pattern of physarum?
+      - [x] add some inertia coefficient
+          (a) inertia on gradient directly ~= inertia on direction
+          (b) or possibly add requirement for *continuity* of the *derivative* (1st or 2nd order)
+      - [x] try adding noise
+            -- it doesn't change a lot; but be careful with a scale.
+            Clusters still form, but bigger
+      - [x] try direction-only (normalized) gradient
+      - [x] experiment 1 on medium food dynamics -- const | random add
+          give agents an aim for movement
+          --> obviously with gradient they try repeating the moving pattern.
+      - [x] understand how coagulation works, how it depends on:
+          - number of agents
+          - agent speed
+          - env character
+          --> see results below on living thing 1
+      - [x] reproduce physarum environment with basics (no food, just inertia)
+            differences:
+            - sense neighbourhooud is immediate not further
+            Need make agents:
+            - always moving (independent scale)
+            - always turning by specific amount (gradient inertia doesn't work)
+      - [x] add some *native* collision resolution -- natural stochasticity of agents
+
+      - [x] Exp check that order of operations is logical:
+            - Deposit happens after medium diffuse & agent sensing & grad compute
+              so that they don't sense their own trails so much.
+            - Deposit happens after successful move
+      - [x] make agent deposit only on successfull turn
+      - [x] create gradient + offset agent
+            separate Blind zone, Discretization, Sense offset from basic GradAgent
+            why? allow same gradient agent but with additional conditions
+      Fixes
+      - [ ] align sense mask on Medium with Agent's sense mask
+      - [x] fix "Jittering" agents
+
+      Experiment Log. Modifications (a-d):
+
+      Experiment 1 results on gradient agent:
+      -> gradient scale + noise don't work for physarum because
+      (a) noise forgets direction inertia (so cells don't tend to follow their routes)
+      (b) gradient scale is still gradient-dependent, so coagulation is still there
+
+      So, overall gradient strategy is like conservative exploitation strategy.
+      It depends on ratio of environment decay/diffuse and agent deposit.
+      In general agents "trail" to their own deposits, coagulating fast.
+
+      Experiment 2 results:
+      (c) discrete turn:
+          Agents can begin to "spin" but still return to their own gradient.
+      (d) blind zone of gradient:
+          Agents are less prone to spinning, but they coagulate noisely, still well.
+      (e) sense offset:
+          Really helps. Agents bein to move "ahead".
+          *Maybe* it is a quazi-prediction of where the food will be available?
+          - [ ] EXP NOTE maybe learning agents will come up with something like that?
+
+-- does that count as a paper on generalisation of original Physarum paper? making it continuous?
+   how about Lenia?
+   sounds like not quite; small incremental enhancement.
+
+- [ ] 0.3: basic learning
+    - [ ] design baseline Experiment:
+        - [ ] measure avg perf of baseline setups
+        - [ ] check if agents have enough pressure for learning communication
+            need dying? Reward is enough?
+        - [ ] setup clear Reward & performance characteristics (almost done)
+
+        - [ ] setup baseline Dynamics hyperparams
+            Env + base Agents + tune per avg performance
+            criteria is some baseline performance of Random agent
+
+    - [ ] Evotorch + Neural CA
+        - [x] basic nn.Module impl
+        - [ ] setup experiments
+            - [x] make some statistics for action (maybe visual)
+                  to understand what's happening.
+            - [x] visualize env after kernel application
+            - [ ] visualize actions??
+            - [x] **visualise learning dynamics (reward)**
+                - [x] try MLFlow
+            - [x] take the best model & run it
+            - [x] make checkpoints serialize
+            - [ ] try gpu (problem: inputs must be on GPU)
+
+            - [ ] NB: **They're Very Sensitive to Initial Conditions**
+            - [ ] try adding FC layer
+                read about:
+                .. _Self-Normalizing Neural Networks: https://arxiv.org/abs/1706.02515
+                .. _Efficient Object Localization Using Convolutional Networks: https://arxiv.org/abs/1411.4280
+            - [ ] try different learning settings
+                - [x] try different optimizer
+
+        - [ ] experiment milestones
+            - [x] reproduce static env (like gradient agent)
+            - [ ] achieve results in dynamic env
+
+        - [ ] **Practical experiments**
+            - [ ] think on promising practical tasks
+                - What are the distinctive features of this approach?
+                  It's both distributed and yet they learn single kernel.
+                  What's new w.r.t. Neural Automata?
+            - [ ] choose promising practical tasks
+            - [ ] ? try Weather Forecast Env
+                  First fluid dynamics equation.
+                  Then real-world dataset with time-delayed supervised learning.
+
+    - [ ] Gradient learning:
+        - [ ] test backward pass in Module
+
+
+Important core enhancements:
+- [ ] add asynchronous setting to Env/Agent (random portion of agents moving)
+- [ ] always update position with continous data channels in `agents` array
+      i.e. in coordinates store only approximations; but don't lose info on precision.
+- [ ] **implement separate 2-way mapper for such indexers**
+- [ ] dynamic parameters of Dynamics
+- [ ] STRICT cost action
+
+- [ ] Abstracted Actionable-channels definition
+      like, let medium have channels rgbc,
+      and enable Agent to Sense 'rgb' and to Act on 'g' and 'c'.
+- [ ] Compositional Abstracted Sensors in real-world terms (?)
+      e.g. 'Rotate Sensor', 'Acceleration Sensor', 'Gradient Sensor', 'Acidity Sensor', 'Food Sensor'.
+      each sensor is defined as
+      (a) vectorized transform of some input channels
+      (b) hyperparams (like space offset and delay)
+      Why? A lot of information is too implicitly hardcoded into Env & Agent definition.
+- [ ] Compositional Agents:
+      Synchronous (sequential) and async (randomly chosen) models.
+      Layered agents could act on top of other agents --- think of hierarchies of "cells"
+       that could "warp" source medium and reward function for their underlying agents.
+
+**Do I have an aim of making a good framework for something like "Chemical Artificial Life GYM"?**
+
+Aux: plotting
+- plotting NB: all tests are isolated visual cases, really
+  maybe with some statistical tests *over the image*
+- [x] aspect ratio
+- [x] subplot with agent stats
+- [ ] subplot with agent sense neighbourhoods?
+- [ ] advanced dynamic vis (see https://docs.xarray.dev/en/stable/user-guide/plotting.html)
+- [ ] dynamic parameter sliders
+
+Well packaged
+- [ ] make tests out of visual examples
+- [ ] implement gym.Env API fully
+tests
+- [ ] make test for double-way mapping agents --> medium and back
+
+----------
+
+Living thing 1 (Gradient coagulating agent):
+- scale controls characteristic size of "cells"
+- inertia controls their "responsiveness" and how fast they change/move/merge
+- they are stable and not-moving in absence of nearby agents
+- sometimes can get almost pure stable rings of characteristic size (inertia was 0.9)
+- at inertia 0.2 get more dynamic form change: got several metamorphoses
+  from metastable smooth "triangle" circles to several embedded circles.
+
+Env params:
+- higher diffuse => better communication; less diffuse => slower communication & convergence
+
+----------
+
+**Learning Experiment Setup**
+
+Environments:
+- (st-rand) static x random
+- (dyn-rand) dynamic x random
+- (dyn-pred) dynamic x predictable (function dynamics)
+- (dyn-weather) dynamic weather forecast
+- (dyn-comm) static x perlin-noise x dynamic diffusion
+Variations:
+- dynamic communication parameters (diffusion & decay change by some formula)
+
+Agents & performance
+- random (st-rand) -> negative perf
+- random (dyn-rand) -> negative perf, >= in static
+- physarum (st-rand) -> positive perf;
+- physarum (dyn-rand) -> positive perf; ~~<= in static, > random
+- gradient (st-rand) -> positive perf; >= physarum
+- gradient (dyn-rand) -> positive perf
+--> physarum must have better exploration => can test this in some specific sparse dynamic env-s
+in random & in predictable environment
+
+Target parameters for defining baseline:
+* Reward:
+- D op_action_cost
+- D rate_feed
+- D op_food_flow
+* Comm:
+- D diffusion/decay
+- A deposit
+* Couplings:
+- ...
+
+
+----------
+
+## Modernization roadmap (added 2026-07)
+
+Stack research verdict (verified Jul 2026): the accepted stack for NCA/ALife research is JAX
+(see CAX, ICLR 2025). The current trainer keeps evotorch 0.6.1 (semi-dormant but functional,
+pinned) behind a generation-granular `SearcherBackend` seam. The intended follow-up:
+
+- Port the env core to JAX: pure fixed-shape array functions, `vmap` over population,
+  `scan` over rollout steps, `dm-pix` for gaussian diffusion, fixed `max_agents` + alive-mask
+  for dynamic populations. Expected ~10-50x on CPU from XLA fusion; more with CUDA at popsize >= 100.
+- Slot `evosax` (has PGPE + ClipUp via optax) into the existing `SearcherBackend` seam.
+- References: CAX (https://github.com/maxencefaldor/cax) for NCA/Lenia patterns,
+  QDax for MAP-Elites experiments once QD beckons.
+- Vetoed: EvoJAX (archived), nevergrad (dormant), EvoX (active but device-batch-only eval,
+  no PGPE — wrong shape for this project).
+
+### Status: done (`die/jx/` + `EvosaxBackend`)
+
+The port landed as a *coexisting* core, not a replacement: `die/jx/` holds the pure-JAX
+env, a Flax NCA and a `vmap`/`scan` rollout, and drives training via `EvosaxBackend`
+(PGPE + ClipUp) behind the unchanged `SearcherBackend` seam. The xarray env remains the
+reference implementation and the substrate for scripted agents, the live view and replay.
+
+Measured: **30.7x** steady-state speedup per generation (CPU, 64x64 field, popsize 16,
+50 episode steps) — 4.73 s/gen evotorch vs 0.15 s/gen evosax. Reproduce with
+`uv run python benchmarks/bench_generation.py`. Within the predicted 10-50x band; CUDA
+at larger popsize is untested.
+
+Deviations from the plan above, each forced by a verified fact:
+
+- **dm-pix is not used.** `dm_pix.gaussian_blur` only supports SAME/VALID padding, but the
+  medium diffuses with periodic ('wrap') boundaries. The blur is hand-rolled instead
+  (separable, `jnp.pad(mode='wrap')`), replicating scipy's kernel radius rule exactly —
+  it matches `skimage.filters.gaussian` to float32 epsilon.
+- **evosax minimizes**; reward is maximized, so fitness is negated across the boundary.
+- **Collided deposits accumulate** in the JAX core (scatter-add), where the xarray env's
+  numpy `+=` keeps only the last write. This is the intended fix (cf. the feeding-collision
+  bug logged above), but it makes the two engines diverge exactly when agents share a cell:
+  ~0.3% on a 20-step neural rollout. Everything else matches to ~1e-7, pinned by
+  `tests/unit/test_jx_env.py::TestRolloutParity`.
+- Episodes do not terminate early on extinction (a dead population just earns zero), which
+  keeps the scan shape static; the sense mask (`apply_sense_mask`, off by default) is not ported.
+
+Consequence worth remembering: a JAX-trained agent *replays* in the xarray env, so training
+and replay physics differ slightly at collision cells.
+
+### Apple GPU (Metal): tested, not viable (Jul 2026)
+
+Tried on an M5 Pro (20 GPU cores, Metal 4). `jax-metal` is the only option and it does not
+work for this workload. Three independent blockers, in order of severity:
+
+1. **Binary incompatibility with the current stack.** `jax-metal` 0.1.1 (Oct 2024, ~21 months
+   stale, no release since) cannot run on jax 0.11 at all — even `jnp.ones` dies with
+   `unknown attribute code: 22 ... bytecode version 6 produced by StableHLO_v1.14.0`. The
+   plugin's PJRT binary predates the IR jax now emits.
+2. **Irreconcilable pins.** evosax 0.2 requires `jax>=0.5`; jax-metal is only usable around
+   its contemporary `jax==0.4.34`. There is no version satisfying both, so using Metal would
+   mean downgrading the whole stack ~2 years *and* rewriting the backend against the old
+   pre-0.2 evosax API.
+3. **The core pattern deadlocks anyway.** Even after downgrading to jax 0.4.34, where every
+   individual op we need works on Metal (scatter-add/max, wrap-pad, convolve, conv, scan,
+   vmap — all verified OK), the actual workload hangs. Isolated to a single construct:
+
+   | construct (64x64 field)                    | CPU    | Metal          |
+   |--------------------------------------------|--------|----------------|
+   | scan 50 x dynamic-index scatter            | 0.02 s | 0.02 s OK      |
+   | **vmap(16) over** that same scan           | 0.13 s | hangs (>300 s, 0% CPU) |
+
+   Batched scatter with data-dependent indices inside a scan is exactly what population
+   evaluation *is* here (agents deposit at their own moving positions, vmapped over the
+   population), so this is not something to code around.
+
+Conclusion: stay on CPU, where the port already gives ~30x and an M-series CPU is fast.
+Real GPU scaling means CUDA on Linux — see below.
+
+### NVIDIA GPU (CUDA): wired up, unmeasured
+
+`--extra train-cuda` installs `jax[cuda12]`, marked linux-x86_64 so it stays inert on
+macOS. torch 2.13 and jax-cuda12 0.11 resolve to one shared NVIDIA library set (cudnn
+9.24, cublas 12.9) — no conflict, but ~6 GB of wheels, which is why the CI extras are
+listed explicitly instead of `--all-extras`.
+
+**No GPU numbers yet: nothing here has run on one.** CI's `cuda-smoke` job proves the
+extra installs, coexists with torch's CUDA libraries, and that the training path still
+works when the plugin is present but finds no device (jax must fall back to CPU rather
+than crash) — everything except that kernels execute on a GPU, which a standard runner
+cannot test. The `cuda-gpu` job does the real thing (asserts a GPU backend, trains, and
+benchmarks) but needs a runner labelled `gpu` and is manual-dispatch only.
+
+Expectations to check when a GPU is available: the CPU path is already only ~0.15 s per
+generation at 64^2/popsize 16, so per-generation latency is dominated by kernel launches
+at that size — a GPU should win only once popsize or field size grows enough to fill it.
+`jx.device` is recorded in every tracked run, so a run that quietly fell back to CPU is
+identifiable after the fact.
